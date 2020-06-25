@@ -283,9 +283,11 @@ impl Permissions {
     let url: &str = url.unwrap();
     // If url is invalid, then throw a TypeError.
     let parsed = Url::parse(url).map_err(OpError::from)?;
-    Ok(
-      self.get_state_net(&format!("{}", parsed.host().unwrap()), parsed.port()),
-    )
+    // The url may be valid but still lack the host, if so - throw a TypeError
+    let host = parsed
+      .host_str()
+      .ok_or_else(|| OpError::uri_error("missing host".to_owned()))?;
+    Ok(self.get_state_net(&format!("{}", host), parsed.port()))
   }
 
   pub fn check_net(&self, hostname: &str, port: u16) -> Result<(), OpError> {
