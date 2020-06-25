@@ -285,8 +285,8 @@ impl Permissions {
     let url: &str = url.unwrap();
     // If url is invalid, then throw a TypeError.
     let parsed = Url::parse(url).map_err(OpError::from)?;
-    // The url may be parsed, but still invalid, i.e. "localhost:235" or "mailto:someone@somewhere.com" or "file:/1.txt"
-    if parsed.host().is_none() || parsed.cannot_be_a_base() {
+    // The url may be parsed correctly but still lack a host, i.e. "localhost:235" or "mailto:someone@somewhere.com" or "file:/1.txt"
+    if parsed.host().is_none() {
       return Err(OpError::uri_error(
         "invalid url, expected format: <scheme>://<host>:[port][/subpath]"
           .to_owned(),
