@@ -845,6 +845,20 @@ mod tests {
     });
     set_prompt_result(true);
     assert!(perms3.request_net(&Some(":")).is_err());
+
+    let mut perms4 = Permissions::from_flags(&Flags {
+      net_allowlist: allowlist.clone(),
+      ..Default::default()
+    });
+    set_prompt_result(false);
+    assert_eq!(
+      perms4
+        .request_net(&Some("localhost:8080"))
+        .unwrap_err()
+        .kind,
+      op_error::ErrorKind::URIError
+    );
+
     drop(guard);
   }
 
