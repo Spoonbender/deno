@@ -871,6 +871,31 @@ mod tests {
       crate::op_error::ErrorKind::URIError
     );
 
+    let allowlist = svec!["localhost:443"];
+    let mut perms6 = Permissions::from_flags(&Flags {
+      net_allowlist: allowlist.clone(),
+      ..Default::default()
+    });
+    set_prompt_result(false);
+    assert_eq!(
+      perms6
+        .request_net(&Some("https://localhost/"))
+        .expect("Testing expect"),
+      PermissionState::Allow
+    );
+
+    let mut perms7 = Permissions::from_flags(&Flags {
+      net_allowlist: allowlist,
+      ..Default::default()
+    });
+    set_prompt_result(false);
+    assert_eq!(
+      perms7
+        .request_net(&Some("https://localhost:443/"))
+        .expect("Testing expect"),
+      PermissionState::Allow
+    );
+
     drop(guard);
   }
 
