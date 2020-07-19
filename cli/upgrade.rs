@@ -108,7 +108,7 @@ pub async fn upgrade_command(
     &install_version,
   )
   .await?;
-  let old_exe_path = std::env::current_exe()?;
+  let old_exe_path = get_current_exe_path()?;
   let new_exe_path = unpack(archive_data)?;
   let permissions = fs::metadata(&old_exe_path)?.permissions();
   fs::set_permissions(&new_exe_path, permissions)?;
@@ -127,6 +127,27 @@ pub async fn upgrade_command(
   println!("Upgrade done successfully");
 
   Ok(())
+}
+
+fn get_current_exe_path() -> std::io::Result<PathBuf> {
+  let original_error: std::io::Error;
+  match std::env::current_exe() {
+    Ok(path) => return Ok(path),
+    Err(e) => original_error = e,
+  }
+
+  if let Some(path) = std::env::args().next() {
+    let path = PathBuf::from(path);
+    if path.is_absolute() {
+      return Ok(path);
+    }
+
+    if let Ok(current_dir) = std::env::current_dir() {
+      return Ok(current_dir.join(path));
+    }
+  }
+
+  Err(original_error)
 }
 
 fn download_package(
