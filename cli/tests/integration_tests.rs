@@ -3340,10 +3340,10 @@ fn upgrade_should_work_without_procfs_mounted() {
   let chroot_dir = TempDir::new().unwrap();
   std::fs::create_dir(chroot_dir.path().join("tmp")).unwrap();
   let mounted_dirs = vec![
-    "bin", "dev", "etc", "lib", "lib64", "opt", "run", "sbin", "srv", "sys",
-    "usr", "var",
+    "bin", "etc", "lib", "lib64", "opt", "run", "sbin", "srv", "sys", "usr",
+    "var",
   ];
-  for rootfs_dir in mounted_dirs {
+  for rootfs_dir in &mounted_dirs {
     let dir_in_jail = chroot_dir.path().join(rootfs_dir);
     std::fs::create_dir(&dir_in_jail).unwrap();
     std::process::Command::new("mount")
@@ -3376,5 +3376,18 @@ fn upgrade_should_work_without_procfs_mounted() {
     .output()
     .unwrap();
   let actual_version = String::from_utf8(output.stdout).unwrap();
+
+  // cleanup
+  for rootfs_dir in mounted_dirs {
+    let dir_in_jail = chroot_dir.path().join(rootfs_dir);
+    std::fs::create_dir(&dir_in_jail).unwrap();
+    std::process::Command::new("umount")
+      .arg(dir_in_jail.as_path().to_str().unwrap())
+      .spawn()
+      .unwrap()
+      .wait()
+      .unwrap();
+  }
+
   assert_eq!(&format!("deno {}\n", desired_version), &actual_version);
 }
