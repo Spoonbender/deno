@@ -3346,15 +3346,15 @@ fn upgrade_should_work_without_procfs_mounted() {
   for dir in mounted_dirs {
     let dir_in_jail = chroot_dir.path().join(dir);
     std::fs::create_dir(&dir_in_jail).unwrap();
-    std::process::Command::new(format!(
-      "mount -o bind /{} {}",
-      dir,
-      dir_in_jail.as_path().to_str().unwrap()
-    ))
-    .spawn()
-    .unwrap()
-    .wait()
-    .unwrap();
+    std::process::Command::new("mount")
+      .arg("-o")
+      .arg("bind")
+      .arg(format!("/{}", dir))
+      .arg(dir_in_jail.as_path().to_str().unwrap())
+      .spawn()
+      .unwrap()
+      .wait()
+      .unwrap();
   }
 
   let jailed_deno_path = chroot_dir.path().join("deno");
