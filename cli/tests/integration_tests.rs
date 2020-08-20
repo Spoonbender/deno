@@ -3343,13 +3343,13 @@ fn upgrade_should_work_without_procfs_mounted() {
     "bin", "dev", "etc", "lib", "lib64", "opt", "run", "sbin", "srv", "sys",
     "usr", "var",
   ];
-  for dir in mounted_dirs {
-    let dir_in_jail = chroot_dir.path().join(dir);
+  for rootfs_dir in mounted_dirs {
+    let dir_in_jail = chroot_dir.path().join(rootfs_dir);
     std::fs::create_dir(&dir_in_jail).unwrap();
     std::process::Command::new("mount")
       .arg("-o")
       .arg("bind")
-      .arg(format!("/{}", dir))
+      .arg(format!("/{}", rootfs_dir))
       .arg(dir_in_jail.as_path().to_str().unwrap())
       .spawn()
       .unwrap()
@@ -3357,6 +3357,7 @@ fn upgrade_should_work_without_procfs_mounted() {
       .unwrap();
   }
 
+  let desired_version = "1.1.0";
   let jailed_deno_path = chroot_dir.path().join("deno");
   std::fs::copy(test_util::deno_exe_path(), jailed_deno_path).unwrap();
   std::process::Command::new("chroot")
@@ -3365,7 +3366,7 @@ fn upgrade_should_work_without_procfs_mounted() {
     .arg("upgrade")
     .arg("--force")
     .arg("--version")
-    .arg("1.1.0")
+    .arg(desired_version)
     .output()
     .unwrap();
   let output = std::process::Command::new("chroot")
@@ -3374,6 +3375,6 @@ fn upgrade_should_work_without_procfs_mounted() {
     .arg("-V")
     .output()
     .unwrap();
-  let version = String::from_utf8(output.stdout).unwrap();
-  assert_eq!("deno 1.1.0", &version);
+  let actual_version = String::from_utf8(output.stdout).unwrap();
+  assert_eq!(&format!("deno {}\n", desired_version), &actual_version);
 }
