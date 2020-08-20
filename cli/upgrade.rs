@@ -136,14 +136,26 @@ fn get_current_exe_path() -> std::io::Result<PathBuf> {
     Err(e) => original_error = e,
   }
 
-  if let Some(path) = std::env::args().next() {
-    let path = PathBuf::from(path);
-    if path.is_absolute() {
-      return Ok(path);
+  // We couldn't get the current exe using the standard library's method:
+  // Fallback on trying to deduce its path from the first command line argument
+  if let Some(path) = std::env::args_os().next() {
+    let mut path = PathBuf::from(path);
+
+    if path.is_relative() {
+      if let Ok(current_dir) = std::env::current_dir() {
+        path = current_dir.join(path);
+      } else {
+        return Err(original_error);
+      }
     }
 
-    if let Ok(current_dir) = std::env::current_dir() {
-      return Ok(current_dir.join(path));
+    // There is no guarantee that the first command line argument really points to our exe:
+    // the parent process might have set this arg to any value whatsoever.
+    // Try to increase our certainty by checking if the file path leads a deno exe of the current version
+    if path.exists()
+      && check_exe(&path, &semver_parse(crate::version::DENO).unwrap()).is_ok()
+    {
+      return Ok(path);
     }
   }
 
