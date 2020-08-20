@@ -3332,3 +3332,48 @@ fn should_not_panic_on_undefined_deno_dir_and_home_environment_variables() {
     .unwrap();
   assert!(output.status.success());
 }
+
+//#[cfg(not(windows))]
+#[test]
+fn upgrade_should_work_without_procfs_mounted() {
+  // Create the chroot environment with all directories except /proc
+  let chroot_dir = TempDir::new().unwrap();
+  std::fs::create_dir(chroot_dir.path().join("tmp")).unwrap();
+  let mounted_dirs = vec![
+    "bin", "dev", "etc", "lib", "lib64", "opt", "run", "sbin", "srv", "sys",
+    "usr", "var",
+  ];
+  for dir in mounted_dirs {
+    let dir_in_jail = chroot_dir.path().join(dir);
+    std::fs::create_dir(&dir_in_jail).unwrap();
+    std::process::Command::new(format!(
+      "mount -o bind /{} {}",
+      dir,
+      dir_in_jail.as_path().to_str().unwrap()
+    ))
+    .spawn()
+    .unwrap()
+    .wait()
+    .unwrap();
+  }
+
+  let jailed_deno_path = chroot_dir.path().join("deno");
+  std::fs::copy(test_util::deno_exe_path(), jailed_deno_path).unwrap();
+  std::process::Command::new("chroot")
+    .arg(chroot_dir.path().to_str().unwrap())
+    .arg("/deno")
+    .arg("upgrade")
+    .arg("--force")
+    .arg("--version")
+    .arg("1.1.0")
+    .output()
+    .unwrap();
+  let output = std::process::Command::new("chroot")
+    .arg(chroot_dir.path().to_str().unwrap())
+    .arg("/deno")
+    .arg("-V")
+    .output()
+    .unwrap();
+  let version = String::from_utf8(output.stdout).unwrap();
+  assert_eq!("deno 1.1.0", &version);
+}
